@@ -2,7 +2,12 @@ import altair as alt
 import pandas as pd
 import streamlit as st
 
-st.set_page_config(page_title="Weekly Highlights", layout="wide")
+st.set_page_config(
+    page_title="Promo Insights",
+    page_icon="📈",  # This can be an emoji or a custom image (see below)
+    layout="wide"
+)
+
 st.title("📅 Weekly Highlights")
 
 
