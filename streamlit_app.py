@@ -110,15 +110,20 @@ with tab1:
     st.markdown("### 💰 Revenue vs Profit (This Week)")
 
     week_df["Profit"] = week_df["Incremental Revenue"] - week_df["Promo Spend"]
+    week_df["Total_Revenue"] = week_df["Units Sold This Week"] * week_df["Regular Price"]
+
+    x_min, x_max = week_df["Incremental Revenue"].min(), week_df["Incremental Revenue"].max()
+    y_min, y_max = week_df["Profit"].min(), week_df["Profit"].max()
 
     scatter = (
         alt.Chart(week_df)
-        .mark_circle(size=100, opacity=0.7)
+        .mark_circle(opacity=0.7)
         .encode(
-            x=alt.X("Incremental Revenue:Q", title="Revenue"),
-            y=alt.Y("Profit:Q", title="Profit"),
-            tooltip=["Item", "Incremental Revenue", "Profit", "Promo ROI"],
-            color=alt.Color("Promo ROI:Q", scale=alt.Scale(scheme="redyellowgreen"))
+            x=alt.X("Incremental Revenue:Q", scale=alt.Scale(domain=[x_min, x_max]), title="Revenue"),
+            y=alt.Y("Profit:Q", scale=alt.Scale(domain=[y_min, y_max]), title="Profit"),
+            size=alt.Size("Total_Revenue:Q", scale=alt.Scale(range=[30, 400]), title="Total Revenue ($)"),
+            color=alt.Color("Promo ROI:Q", scale=alt.Scale(scheme="redyellowgreen"), title="ROI"),
+            tooltip=["Item", "Incremental Revenue", "Profit", "Promo ROI", "Total_Revenue"]
         )
         .properties(height=420)
         .interactive()
@@ -128,8 +133,10 @@ with tab1:
 
 # ========== TAB 2: Item Analysis ==========
 with tab2:
+    # One subheader for the full section
     st.subheader("📦 Item Performance Over Time")
 
+    # Compute features and build summary as before
     df["Revenue_Potential"] = df["Units Sold Last Week"] * df["Regular Price"]
 
     summary = df.groupby("Item").agg(
@@ -139,61 +146,49 @@ with tab2:
         Avg_Revenue=("Incremental Revenue", "mean"),
         Avg_Spend=("Promo Spend", "mean"),
         Total_Revenue_Potential=("Revenue_Potential", "sum")
-    
     ).reset_index()
 
-    # Cap ROI values for color scaling
     summary["ROI_Capped"] = summary["Avg_ROI"].clip(lower=-1, upper=1.5)
 
-        # Second scatterplot: Avg Revenue vs Avg Spend
-    st.markdown("### 💵 Avg Revenue vs Avg Spend per Item")
-
-    scatter2 = (
-        alt.Chart(summary)
-        .mark_circle(size=100, opacity=0.75)
-        .encode(
-            x=alt.X("Avg_Spend:Q", title="Average Promo Spend ($)"),
-            y=alt.Y("Avg_Revenue:Q", title="Average Incremental Revenue ($)"),
-            size=alt.Size("Total_Revenue_Potential:Q", scale=alt.Scale(range=[30, 400])),
-            tooltip=["Item", "Avg_Spend", "Avg_Revenue", "Promo_Count", "Avg_ROI", "Total_Revenue_Potential"],
-            color=alt.Color(
-            "ROI_Capped:Q",
-            scale=alt.Scale(scheme="redyellowgreen", domainMid=0),
-            legend=alt.Legend(title="Average ROI")
-    )
-        )
-        .properties(height=400)
-        .interactive()
-    )
-
-    # ROI vs Promo Count scatter
-    scatter3 = (
-        alt.Chart(summary)
-        .mark_circle(size=100, opacity=0.75)
-        .encode(
-            x=alt.X("Promo_Count:Q", title="Number of Promotions"),
-            y=alt.Y("Avg_ROI:Q", title="Average ROI"),
-            size=alt.Size("Total_Revenue_Potential:Q", scale=alt.Scale(range=[30, 400])),
-            color=alt.Color(
-                "ROI_Capped:Q",
-                scale=alt.Scale(scheme="redyellowgreen", domainMid=0),
-                legend=alt.Legend(title="Avg ROI (capped)")
-            ),
-            tooltip=["Item", "Promo_Count", "Avg_ROI", "Total_Revenue"]
-        )
-        .properties(height=400)
-        .interactive()
-    )
-    
-    st.markdown("### 📊 Item-Level ROI Analysis")
-
+    # Layout: 2 columns
     col1, col2 = st.columns(2)
 
     with col1:
+        st.markdown("### 💵 Avg Revenue vs Avg Promo Spend per Item")
+        scatter2 = (
+            alt.Chart(summary)
+            .mark_circle(size=100, opacity=0.75)
+            .encode(
+                x=alt.X("Avg_Spend:Q", title="Average Promo Spend ($)"),
+                y=alt.Y("Avg_Revenue:Q", title="Average Incremental Revenue ($)"),
+                size=alt.Size("Total_Revenue_Potential:Q", scale=alt.Scale(range=[30, 400])),
+                color=alt.Color("ROI_Capped:Q", scale=alt.Scale(scheme="redyellowgreen", domainMid=0),
+                                legend=alt.Legend(title="Average ROI")),
+                tooltip=["Item", "Avg_Spend", "Avg_Revenue", "Promo_Count", "Avg_ROI", "Total_Revenue_Potential"]
+            )
+            .properties(height=400)
+            .interactive()
+        )
         st.altair_chart(scatter2, use_container_width=True)
 
     with col2:
+        st.markdown("### 📈 ROI vs Number of Promotions")
+        scatter3 = (
+            alt.Chart(summary)
+            .mark_circle(size=100, opacity=0.75)
+            .encode(
+                x=alt.X("Promo_Count:Q", title="Number of Promotions"),
+                y=alt.Y("Avg_ROI:Q", title="Average ROI"),
+                size=alt.Size("Total_Revenue_Potential:Q", scale=alt.Scale(range=[30, 400])),
+                color=alt.Color("ROI_Capped:Q", scale=alt.Scale(scheme="redyellowgreen", domainMid=0),
+                                legend=alt.Legend(title="Avg ROI (capped)")),
+                tooltip=["Item", "Promo_Count", "Avg_ROI", "Total_Revenue"]
+            )
+            .properties(height=400)
+            .interactive()
+        )
         st.altair_chart(scatter3, use_container_width=True)
+
 
 
 
@@ -233,6 +228,23 @@ with tab2:
 
     # Combine item history + totals
     display_with_totals = pd.concat([display_df, totals_df], ignore_index=True)
+
+        # Calculate recommendation
+    num_promos = len(item_history)
+    avg_roi = totals["Promo ROI"]
+
+    if num_promos >= 3 and avg_roi >= 0.5:
+        recommendation = "✅ Run another promo — consider a deeper discount."
+    elif num_promos < 3 and avg_roi >= 0.5:
+        recommendation = "📈 High potential — test another promotion soon."
+    elif num_promos < 3 and avg_roi < 0.5:
+        recommendation = "⚠️ Be cautious — early signs of low ROI."
+    else:  # num_promos >= 3 and avg_roi < 0.5
+        recommendation = "🚫 Avoid promoting again — consistently low ROI."
+
+    # Display recommendation above the table
+    st.markdown(f"### 🤖 Recommendation for **{selected_item}**")
+    st.info(recommendation)
 
     # Display with formatting
     st.dataframe(
