@@ -11,6 +11,12 @@ st.set_page_config(
 st.image("data/econo_logo.png", width=400)
 st.title("Econo HQ Cuadriculado Dashboard")
 
+query_params = st.experimental_get_query_params()
+preselected_item = query_params.get("item", [None])[0]
+
+# Initialize session state for active_tab
+if "active_tab" not in st.session_state:
+    st.session_state.active_tab = 1 if preselected_item else 0
 
 
 @st.cache_data
@@ -172,30 +178,81 @@ with tab1:
 
     csv_data = convert_df_to_csv(display_df)
     # Revenue vs Profit scatterplot
-    st.markdown("### 💰 Revenue vs Profit (This Week)")
 
+    # Thresholds
+    roi_threshold = 1.0
+    lift_threshold = 1.5
+
+
+    # Calculate Lift (already assumed present in week_df)
+    week_df["Lift"] = week_df["Units Sold This Period"] / week_df["Units Sold Last Period"]
     week_df["Profit"] = week_df["Incremental Revenue"] - week_df["Promo Spend"]
     week_df["Total_Revenue"] = week_df["Units Sold This Period"] * week_df["Regular Price"]
 
-    x_min, x_max = week_df["Incremental Revenue"].min(), week_df["Incremental Revenue"].max()
-    y_min, y_max = week_df["Profit"].min(), week_df["Profit"].max()
+    # Compute min/max to include thresholds
+    x_min = min(week_df["ROI"].min(), roi_threshold * 0.95)
+    x_max = max(week_df["ROI"].max(), roi_threshold * 1.05)
+    y_min = min(week_df["Lift"].min(), lift_threshold * 0.95)
+    y_max = max(week_df["Lift"].max(), lift_threshold * 1.05)
 
-    scatter = (
-        alt.Chart(week_df)
-        .mark_circle(opacity=0.7)
-        .encode(
-            x=alt.X("Incremental Revenue:Q", scale=alt.Scale(domain=[x_min, x_max]), title="Revenue"),
-            y=alt.Y("Profit:Q", scale=alt.Scale(domain=[y_min, y_max]), title="Profit"),
-            size=alt.Size("Total_Revenue:Q", scale=alt.Scale(range=[30, 400]), title="Total Revenue ($)"),
-            color=alt.Color("ROI:Q", scale=alt.Scale(scheme="redyellowgreen"), title="ROI"),
-            tooltip=["Item", "Incremental Revenue", "Profit", "ROI", "Total_Revenue"]
-        )
-        .properties(height=420)
-        .interactive()
+    # Main scatter chart
+    scatter = alt.Chart(week_df).mark_circle(size=100, opacity=0.75).encode(
+        x=alt.X("ROI:Q", title="Promo ROI", scale=alt.Scale(domain=[x_min, x_max])),
+        y=alt.Y("Lift:Q", title="Unit Sales Lift", scale=alt.Scale(domain=[y_min, y_max])),
+        size=alt.Size("Total_Revenue:Q", scale=alt.Scale(range=[30, 400]), title="Total Revenue"),
+        color=alt.Color("Profit:Q", scale=alt.Scale(scheme="redyellowgreen"), title="Profit"),
+        tooltip=["Item", "ROI", "Lift", "Incremental Revenue", "Promo Spend", "Profit"]
     )
 
-    st.altair_chart(scatter, use_container_width=True)
+    # Vertical guide (ROI threshold)
+    vline = alt.Chart(pd.DataFrame({"x": [roi_threshold]})).mark_rule(
+        color="#FFD700", strokeDash=[4, 4], strokeWidth=2
+    ).encode(x="x:Q")
 
+    # Horizontal guide (Lift threshold)
+    hline = alt.Chart(pd.DataFrame({"y": [lift_threshold]})).mark_rule(
+        color="#FFD700", strokeDash=[4, 4], strokeWidth=2
+    ).encode(y="y:Q")
+
+# Dynamically calculate chart extents
+x_max = week_df["ROI"].max()
+x_min = week_df["ROI"].min()
+y_max = week_df["Lift"].max()
+y_min = week_df["Lift"].min()
+
+# Add some padding
+pad_x = (x_max - x_min) * 0.05
+pad_y = (y_max - y_min) * 0.05
+
+    # Corner labels
+annotations = pd.DataFrame({
+    "x": [x_max - pad_x, x_min + pad_x, x_max - pad_x, x_min + pad_x],
+    "y": [y_max - pad_y, y_max - pad_y, y_min + pad_y, y_min + pad_y],
+    "label": [
+        "✅ Efficient and impactful promo",
+        "⚠️ Got volume, but at what cost?",
+        "🤔 Efficient, but underwhelming in sales",
+        "🚫 Promo likely failed"
+    ]
+})
+
+labels = alt.Chart(annotations).mark_text(
+    align="left",
+    fontSize=12,
+    fontWeight="bold",
+    color="gray"
+).encode(
+    x="x:Q",
+    y="y:Q",
+    text="label:N"
+)
+
+# Final chart with everything
+final_chart = (scatter + vline + hline + labels).properties(
+    title="📊 Promo Performance Quadrants"
+)
+
+st.altair_chart(final_chart, use_container_width=True)
 # ========== TAB 2: Item Analysis ==========
 with tab2:
     # One subheader for the full section
