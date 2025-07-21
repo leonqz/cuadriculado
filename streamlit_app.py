@@ -34,6 +34,27 @@ def load_data():
 
     return df
 
+# Sidebar glossary
+with st.sidebar.expander("❓ Need help? Glossary of Metrics", expanded=True):
+    st.markdown("""
+**Promo Spend**  
+💸 Total cost of the discount (discount per unit × units sold).
+
+**Incremental Revenue**  
+📈 Extra revenue during the promo vs. a prior non-promo period.
+
+**ROI (Return on Investment)**  
+📊 Incremental Revenue ÷ Promo Spend.
+
+**Breakeven Lift**  
+⚖️ Unit sales multiple needed to match prior profit.
+
+**Lift**  
+🚀 Ratio of units sold during promo vs. previous period.
+
+**Lift Delta**  
+📉 Actual Lift − Breakeven Lift. Positive = promo beat breakeven.
+""")
 # ✅ Make sure this is executed before any tabs or UI use `df`
 df = load_data()
 # ========== Section 2: Private Label Promo Data ==========
