@@ -116,62 +116,11 @@ with tab1:
         index=0
     )
 
-
-    # Filter, sort, rename columns
-    display_df = (
-        week_df.sort_values("ROI", ascending=(view_option == "Bottom Performers"))
-        .head(10)
-        .drop(columns=["Promo_Start_Week"])
-        .loc[:, list(columns_to_keep.keys())]
-        .rename(columns=columns_to_keep)
-    )
-
-    # Apply sorting
-    ascending = view_option == "Bottom Performers"
-    display_df = display_df.sort_values(by=sort_metric, ascending=ascending)
-
-    # Limit rows for Top/Bottom, keep all for "All"
-    if view_option in ["Top Performers", "Bottom Performers"]:
-        display_df = display_df.head(10)
-
-
-    # Define ROI color function
-    def color_roi(val):
-        try:
-            return "color: green" if val > 0 else "color: red"
-        except:
-            return ""
-        
-
-    # Show table
-    st.markdown(f"### {'🔝' if view_option == 'Top Performers' else '🔻'} {view_option} (Week {selected_week})")
-    st.dataframe(
-        display_df.style
-            .format({
-                "Reg Price": "${:.2f}",
-                "Special Price": "${:.2f}",
-                "Promo Spend": "${:.0f}",
-                "Units Sold\nLast Period": "{:.0f}",
-                "Units Sold\nThis Period": "{:.0f}",
-                "Lift": "{:.1f}",
-                "Breakeven Lift": "{:.1f}",
-                "Lift Delta": "{:.1f}",
-                "Incremental Revenue": "${:.0f}",
-                "ROI": "{:.1f}"
-
-
-            })
-            .map(color_roi, subset=["ROI"])
-            .map(color_roi, subset=["Lift Delta"])
-        , use_container_width=False
-    )
-
-    # Download CSV
+        # Download CSV
     @st.cache_data
     def convert_df_to_csv(df):
         return df.to_csv(index=False).encode("utf-8")
 
-    csv_data = convert_df_to_csv(display_df)
 
     def remove_outliers(df, col):
         Q1 = df[col].quantile(0.25)
@@ -262,6 +211,60 @@ with tab1:
     )
 
     st.altair_chart(final_chart, use_container_width=True)
+
+
+    # Filter, sort, rename columns
+    display_df = (
+        week_df.sort_values("ROI", ascending=(view_option == "Bottom Performers"))
+        .head(10)
+        .drop(columns=["Promo_Start_Week"])
+        .loc[:, list(columns_to_keep.keys())]
+        .rename(columns=columns_to_keep)
+    )
+
+    # Apply sorting
+    ascending = view_option == "Bottom Performers"
+    display_df = display_df.sort_values(by=sort_metric, ascending=ascending)
+
+    # Limit rows for Top/Bottom, keep all for "All"
+    if view_option in ["Top Performers", "Bottom Performers"]:
+        display_df = display_df.head(10)
+
+
+    # Define ROI color function
+    def color_roi(val):
+        try:
+            return "color: green" if val > 0 else "color: red"
+        except:
+            return ""
+        
+
+    # Show table
+    st.markdown(f"### {'🔝' if view_option == 'Top Performers' else '🔻'} {view_option} (Week {selected_week})")
+    st.dataframe(
+        display_df.style
+            .format({
+                "Reg Price": "${:.2f}",
+                "Special Price": "${:.2f}",
+                "Promo Spend": "${:.0f}",
+                "Units Sold\nLast Period": "{:.0f}",
+                "Units Sold\nThis Period": "{:.0f}",
+                "Lift": "{:.1f}",
+                "Breakeven Lift": "{:.1f}",
+                "Lift Delta": "{:.1f}",
+                "Incremental Revenue": "${:.0f}",
+                "ROI": "{:.1f}"
+
+
+            })
+            .map(color_roi, subset=["ROI"])
+            .map(color_roi, subset=["Lift Delta"])
+        , use_container_width=False
+    )
+    csv_data = convert_df_to_csv(display_df)
+
+
+
 # ========== TAB 2: Item Analysis ==========
 with tab2:
     # One subheader for the full section
