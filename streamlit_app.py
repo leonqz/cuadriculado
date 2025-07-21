@@ -43,6 +43,7 @@ tab1, tab2 = st.tabs(["📆 Week Analysis", "📦 Item Analysis"])
 with tab1:
     st.subheader("📆 Week-by-Week Performance")
     df["Promo Period"] = df["promo_period"].str.replace("_", "-")
+    df["Lift Delta"] = df["Lift"] - df["Breakeven_Lift"]
 
     # Sort by Promo_Start_Week but display Promo Period
     sorted_periods = (
@@ -69,7 +70,8 @@ with tab1:
         "Incremental Revenue": "Incremental Revenue",
         "ROI": "ROI",
         "Lift": "Lift",
-        "Breakeven_Lift": "Breakeven Lift"
+        "Breakeven_Lift": "Breakeven Lift",
+        "Lift Delta": "Lift Delta"
 
     }
     view_option = st.selectbox("📈 View", ["Top Performers", "Bottom Performers", "All"])
@@ -78,7 +80,7 @@ with tab1:
     # Let user choose sort column
     sort_metric = st.selectbox(
         "📊 Sort table by",
-        options=["ROI", "Incremental Revenue", "Profit", "Promo Spend"],
+        options=["ROI", "Lift Delta", "Lift", "Incremental Revenue", "Profit", "Promo Spend"],
         index=0
     )
 
@@ -107,6 +109,7 @@ with tab1:
             return "color: green" if val > 0 else "color: red"
         except:
             return ""
+        
 
     # Show table
     st.markdown(f"### {'🔝' if view_option == 'Top Performers' else '🔻'} {view_option} (Week {selected_week})")
@@ -119,13 +122,15 @@ with tab1:
                 "Units Sold\nLast Period": "{:.0f}",
                 "Units Sold\nThis Period": "{:.0f}",
                 "Incremental Revenue": "${:.0f}",
-                "ROI": "{:.2f}",
+                "ROI": "{:.1f}",
                 "Lift": "{:.1f}",
-                "Breakeven Lift": "{:.1f}"
+                "Breakeven Lift": "{:.1f}",
+                "Lift Delta": "{:.1f}"
 
             })
-            .map(color_roi, subset=["ROI"]),
-        use_container_width=False
+            .map(color_roi, subset=["ROI"])
+            .map(color_roi, subset=["Lift Delta"])
+        , use_container_width=False
     )
 
     # Download CSV
