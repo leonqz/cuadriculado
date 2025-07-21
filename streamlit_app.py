@@ -11,12 +11,7 @@ st.set_page_config(
 st.image("data/econo_logo.png", width=400)
 st.title("Econo HQ Cuadriculado Dashboard")
 
-query_params = st.experimental_get_query_params()
-preselected_item = query_params.get("item", [None])[0]
 
-# Initialize session state for active_tab
-if "active_tab" not in st.session_state:
-    st.session_state.active_tab = 1 if preselected_item else 0
 
 
 @st.cache_data
@@ -177,11 +172,22 @@ with tab1:
         return df.to_csv(index=False).encode("utf-8")
 
     csv_data = convert_df_to_csv(display_df)
-    # Revenue vs Profit scatterplot
+
+    def remove_outliers(df, col):
+        Q1 = df[col].quantile(0.25)
+        Q3 = df[col].quantile(0.75)
+        IQR = Q3 - Q1
+        lower = Q1 - 1.5 * IQR
+        upper = Q3 + 1.5 * IQR
+        return df[(df[col] >= lower) & (df[col] <= upper)]
+
+
 
     # Thresholds
     roi_threshold = 1.0
     lift_threshold = 1.5
+
+
 
 
     # Calculate Lift (already assumed present in week_df)
@@ -189,14 +195,19 @@ with tab1:
     week_df["Profit"] = week_df["Incremental Revenue"] - week_df["Promo Spend"]
     week_df["Total_Revenue"] = week_df["Units Sold This Period"] * week_df["Regular Price"]
 
+    # Apply to both ROI and Lift
+    filtered_df = remove_outliers(week_df, "ROI")
+    filtered_df = remove_outliers(filtered_df, "Lift")
+
+
     # Compute min/max to include thresholds
-    x_min = min(week_df["ROI"].min(), roi_threshold * 0.95)
-    x_max = max(week_df["ROI"].max(), roi_threshold * 1.05)
-    y_min = min(week_df["Lift"].min(), lift_threshold * 0.95)
-    y_max = max(week_df["Lift"].max(), lift_threshold * 1.05)
+    x_min = min(filtered_df["ROI"].min(), roi_threshold * 0.95)
+    x_max = max(filtered_df["ROI"].max(), roi_threshold * 1.05)
+    y_min = min(filtered_df["Lift"].min(), lift_threshold * 0.95)
+    y_max = max(filtered_df["Lift"].max(), lift_threshold * 1.05)
 
     # Main scatter chart
-    scatter = alt.Chart(week_df).mark_circle(size=100, opacity=0.75).encode(
+    scatter = alt.Chart(filtered_df).mark_circle(size=100, opacity=0.75).encode(
         x=alt.X("ROI:Q", title="Promo ROI", scale=alt.Scale(domain=[x_min, x_max])),
         y=alt.Y("Lift:Q", title="Unit Sales Lift", scale=alt.Scale(domain=[y_min, y_max])),
         size=alt.Size("Total_Revenue:Q", scale=alt.Scale(range=[30, 400]), title="Total Revenue"),
@@ -214,45 +225,43 @@ with tab1:
         color="#FFD700", strokeDash=[4, 4], strokeWidth=2
     ).encode(y="y:Q")
 
-# Dynamically calculate chart extents
-x_max = week_df["ROI"].max()
-x_min = week_df["ROI"].min()
-y_max = week_df["Lift"].max()
-y_min = week_df["Lift"].min()
 
-# Add some padding
-pad_x = (x_max - x_min) * 0.05
-pad_y = (y_max - y_min) * 0.05
+    # Add some padding
+    pad_x = (x_max - x_min) * 0.05
+    pad_y = (y_max - y_min) * 0.05
 
-    # Corner labels
-annotations = pd.DataFrame({
-    "x": [x_max - pad_x, x_min + pad_x, x_max - pad_x, x_min + pad_x],
-    "y": [y_max - pad_y, y_max - pad_y, y_min + pad_y, y_min + pad_y],
-    "label": [
-        "✅ Efficient and impactful promo",
-        "⚠️ Got volume, but at what cost?",
-        "🤔 Efficient, but underwhelming in sales",
-        "🚫 Promo likely failed"
-    ]
-})
+        # Corner labels
+    annotations = pd.DataFrame({
+        "x": [x_max - pad_x, x_min + pad_x, x_max - pad_x, x_min + pad_x],
+        "y": [y_max - pad_y, y_max - pad_y, y_min + pad_y, y_min + pad_y],
+        "label": [
+            "✅ Efficient and impactful promo",
+            "⚠️ Got volume, but at what cost?",
+            "🤔 Efficient, but underwhelming in sales",
+            "🚫 Promo likely failed"
+        ],
+        "align": ["right", "left", "right", "left"],
+        "baseline": ["top", "top", "bottom", "bottom"]
+    })
 
-labels = alt.Chart(annotations).mark_text(
-    align="left",
-    fontSize=12,
-    fontWeight="bold",
-    color="gray"
-).encode(
-    x="x:Q",
-    y="y:Q",
-    text="label:N"
-)
+    labels = alt.Chart(annotations).mark_text(
+        fontSize=12,
+        fontWeight="bold",
+        color="gray"
+    ).encode(
+        x="x:Q",
+        y="y:Q",
+        text="label:N"
+    ).transform_calculate(
+        align="datum.align",
+        baseline="datum.baseline"
+    )
+    # Final chart with everything
+    final_chart = (scatter + vline + hline + labels).properties(
+        title="📊 Promo Performance Quadrants"
+    )
 
-# Final chart with everything
-final_chart = (scatter + vline + hline + labels).properties(
-    title="📊 Promo Performance Quadrants"
-)
-
-st.altair_chart(final_chart, use_container_width=True)
+    st.altair_chart(final_chart, use_container_width=True)
 # ========== TAB 2: Item Analysis ==========
 with tab2:
     # One subheader for the full section
