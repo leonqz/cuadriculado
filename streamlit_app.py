@@ -13,20 +13,27 @@ st.title("📅 Weekly Highlights")
 
 @st.cache_data
 def load_data():
-    df = pd.read_csv("data/privatelabel_all.csv")
-    df.columns = [
-        "Item", "Week", "Regular Price", "Special Price",
-        "Units Sold Last Week", "Units Sold This Week",
-        "Promo Spend", "Incremental Revenue", "Promo ROI"
-    ]
+    df = pd.read_csv("data/promo_summary.csv")
+    df.rename(columns={
+        "Promo_Revenue": "Promo Revenue",
+        "Incremental_Revenue": "Incremental Revenue",
+        "Promo_Spend": "Promo Spend",
+        "ROI": "ROI",
+        "Promo_Units": "Units Sold This Period",
+        "Baseline_Units": "Units Sold Last Period",
+        "Regular_Price": "Regular Price",
+        "Special_Price": "Special Price",
+        "Promo_Start_Week": "Promo_Start_Week",
+        "Item_Description": "Item"
+    }, inplace=True)
+
     for col in ["Regular Price", "Special Price", "Promo Spend", "Incremental Revenue"]:
-        df[col] = df[col].replace('[\$,]', '', regex=True).astype(float)
+        df[col] = pd.to_numeric(df[col], errors="coerce")
+
     return df
 
+# ✅ Make sure this is executed before any tabs or UI use `df`
 df = load_data()
-
-
-
 # ========== Section 2: Private Label Promo Data ==========
 
 # ========== TABS ==========
@@ -35,11 +42,19 @@ tab1, tab2 = st.tabs(["📆 Week Analysis", "📦 Item Analysis"])
 # ========== TAB 1: Weekly Analysis ==========
 with tab1:
     st.subheader("📆 Week-by-Week Performance")
+    df["Promo Period"] = df["promo_period"].str.replace("_", "-")
+
+    # Sort by Promo_Start_Week but display Promo Period
+    sorted_periods = (
+        df[["Promo Period", "Promo_Start_Week"]]
+        .drop_duplicates()
+        .sort_values("Promo_Start_Week")
+    )["Promo Period"].tolist()
 
 
     # Week selector
-    selected_week = st.selectbox("📆 Select Week", sorted(df["Week"].unique()))
-    week_df = df[df["Week"] == selected_week].copy()
+    selected_week = st.selectbox("📆 Select Cuadriculado", sorted_periods)
+    week_df = df[df["Promo Period"] == selected_week].copy()
 
 
     # Sort and slice
@@ -48,11 +63,14 @@ with tab1:
         "Item": "Item",
         "Regular Price": "Reg Price",
         "Special Price": "Special Price",
-        "Units Sold Last Week": "Units Sold\nLast Week",
-        "Units Sold This Week": "Units Sold\nThis Week",
+        "Units Sold Last Period": "Units Sold\nLast Period",
+        "Units Sold This Period": "Units Sold\nThis Period",
         "Promo Spend": "Promo Spend",
         "Incremental Revenue": "Incremental Revenue",
-        "Promo ROI": "ROI"
+        "ROI": "ROI",
+        "Lift": "Lift",
+        "Breakeven_Lift": "Breakeven Lift"
+
     }
     view_option = st.selectbox("📈 View", ["Top Performers", "Bottom Performers", "All"])
 
@@ -60,16 +78,16 @@ with tab1:
     # Let user choose sort column
     sort_metric = st.selectbox(
         "📊 Sort table by",
-        options=["ROI", "Revenue $", "Profit $", "Spend $"],
+        options=["ROI", "Incremental Revenue", "Profit", "Promo Spend"],
         index=0
     )
 
 
     # Filter, sort, rename columns
     display_df = (
-        week_df.sort_values("Promo ROI", ascending=(view_option == "Bottom Performers"))
+        week_df.sort_values("ROI", ascending=(view_option == "Bottom Performers"))
         .head(10)
-        .drop(columns=["Week"])
+        .drop(columns=["Promo_Start_Week"])
         .loc[:, list(columns_to_keep.keys())]
         .rename(columns=columns_to_keep)
     )
@@ -98,8 +116,13 @@ with tab1:
                 "Reg Price": "${:.2f}",
                 "Special Price": "${:.2f}",
                 "Promo Spend": "${:.0f}",
+                "Units Sold\nLast Period": "{:.0f}",
+                "Units Sold\nThis Period": "{:.0f}",
                 "Incremental Revenue": "${:.0f}",
-                "ROI": "{:.2f}"
+                "ROI": "{:.2f}",
+                "Lift": "{:.1f}",
+                "Breakeven Lift": "{:.1f}"
+
             })
             .map(color_roi, subset=["ROI"]),
         use_container_width=False
@@ -115,7 +138,7 @@ with tab1:
     st.markdown("### 💰 Revenue vs Profit (This Week)")
 
     week_df["Profit"] = week_df["Incremental Revenue"] - week_df["Promo Spend"]
-    week_df["Total_Revenue"] = week_df["Units Sold This Week"] * week_df["Regular Price"]
+    week_df["Total_Revenue"] = week_df["Units Sold This Period"] * week_df["Regular Price"]
 
     x_min, x_max = week_df["Incremental Revenue"].min(), week_df["Incremental Revenue"].max()
     y_min, y_max = week_df["Profit"].min(), week_df["Profit"].max()
@@ -127,8 +150,8 @@ with tab1:
             x=alt.X("Incremental Revenue:Q", scale=alt.Scale(domain=[x_min, x_max]), title="Revenue"),
             y=alt.Y("Profit:Q", scale=alt.Scale(domain=[y_min, y_max]), title="Profit"),
             size=alt.Size("Total_Revenue:Q", scale=alt.Scale(range=[30, 400]), title="Total Revenue ($)"),
-            color=alt.Color("Promo ROI:Q", scale=alt.Scale(scheme="redyellowgreen"), title="ROI"),
-            tooltip=["Item", "Incremental Revenue", "Profit", "Promo ROI", "Total_Revenue"]
+            color=alt.Color("ROI:Q", scale=alt.Scale(scheme="redyellowgreen"), title="ROI"),
+            tooltip=["Item", "Incremental Revenue", "Profit", "ROI", "Total_Revenue"]
         )
         .properties(height=420)
         .interactive()
@@ -142,11 +165,11 @@ with tab2:
     st.subheader("📦 Item Performance Over Time")
 
     # Compute features and build summary as before
-    df["Revenue_Potential"] = df["Units Sold Last Week"] * df["Regular Price"]
+    df["Revenue_Potential"] = df["Units Sold Last Period"] * df["Regular Price"]
 
     summary = df.groupby("Item").agg(
-        Promo_Count=("Week", "count"),
-        Avg_ROI=("Promo ROI", "mean"),
+        Promo_Count=("Promo Period", "count"),
+        Avg_ROI=("ROI", "mean"),
         Total_Revenue=("Incremental Revenue", "sum"),
         Avg_Revenue=("Incremental Revenue", "mean"),
         Avg_Spend=("Promo Spend", "mean"),
@@ -206,13 +229,13 @@ with tab2:
 
     # Columns to show
     cols = [
-        "Week",
+        "Promo Period",
         "Regular Price",
         "Special Price",
         "Promo Spend",
         "Incremental Revenue",
         "Profit",
-        "Promo ROI"
+        "ROI"
     ]
 
     display_df = item_history[cols].copy()
@@ -225,7 +248,7 @@ with tab2:
         "Promo Spend": float(display_df["Promo Spend"].sum()),
         "Incremental Revenue": float(display_df["Incremental Revenue"].sum()),
         "Profit": float(display_df["Profit"].sum()),
-        "Promo ROI": float(display_df["Promo ROI"].mean())
+        "ROI": float(display_df["ROI"].mean())
     }
 
 
@@ -236,7 +259,7 @@ with tab2:
 
         # Calculate recommendation
     num_promos = len(item_history)
-    avg_roi = totals["Promo ROI"]
+    avg_roi = totals["ROI"]
 
     if num_promos >= 3 and avg_roi >= 0.5:
         recommendation = "✅ Run another promo — consider a deeper discount."
@@ -259,7 +282,7 @@ with tab2:
             "Promo Spend": "${:,.0f}",
             "Incremental Revenue": "${:,.0f}",
             "Profit": "${:,.0f}",
-            "Promo ROI": "{:.2f}"
+            "ROI": "{:.2f}"
         }),
         use_container_width=True
     )
