@@ -8,11 +8,9 @@ st.set_page_config(
     layout="wide"
 )
 
-col1, col2 = st.columns([1, 5])
-with col1:
-    st.image("data/econo_logo.png", width=400)
-with col2:
-    st.title("Econo Headquarters Cuadriculado Dashboard")
+st.image("data/econo_logo.png", width=400)
+st.title("Econo HQ Cuadriculado Dashboard")
+
 
 
 @st.cache_data
