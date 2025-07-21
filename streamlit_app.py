@@ -3,8 +3,8 @@ import pandas as pd
 import streamlit as st
 
 st.set_page_config(
-    page_title="Promo Insights",
-    page_icon="📈",  # This can be an emoji or a custom image (see below)
+    page_title="BetterBasket - Shopper",
+    page_icon="data/betterbasket_icon_blue.png",
     layout="wide"
 )
 
