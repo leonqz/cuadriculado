@@ -8,7 +8,11 @@ st.set_page_config(
     layout="wide"
 )
 
-st.title("📅 Weekly Highlights")
+col1, col2 = st.columns([1, 5])
+with col1:
+    st.image("data/econo_logo.png", width=400)
+with col2:
+    st.title("Econo Headquarters Cuadriculado Dashboard")
 
 
 @st.cache_data
@@ -121,11 +125,12 @@ with tab1:
                 "Promo Spend": "${:.0f}",
                 "Units Sold\nLast Period": "{:.0f}",
                 "Units Sold\nThis Period": "{:.0f}",
-                "Incremental Revenue": "${:.0f}",
-                "ROI": "{:.1f}",
                 "Lift": "{:.1f}",
                 "Breakeven Lift": "{:.1f}",
-                "Lift Delta": "{:.1f}"
+                "Lift Delta": "{:.1f}",
+                "Incremental Revenue": "${:.0f}",
+                "ROI": "{:.1f}"
+
 
             })
             .map(color_roi, subset=["ROI"])
