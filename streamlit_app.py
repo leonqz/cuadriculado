@@ -34,27 +34,35 @@ def load_data():
 
     return df
 
+def load_weekly_data():
+    df = pd.read_csv("data/weekly_df.csv")
+    return df
+
+weekly_df = load_weekly_data()
+
 # Sidebar glossary
-with st.sidebar.expander("❓ Need help? Glossary of Metrics", expanded=True):
-    st.markdown("""
+# Sidebar glossary
+st.sidebar.markdown("### 📘 Need help? Metric Glossary")
+st.sidebar.markdown("""
 **Promo Spend**  
-💸 Total cost of the discount (discount per unit × units sold).
+💸 The total cost of offering the discount (i.e., the discount per unit × units sold).
 
 **Incremental Revenue**  
-📈 Extra revenue during the promo vs. a prior non-promo period.
+📈 The extra revenue generated during the promotion compared to the prior period.
 
 **ROI (Return on Investment)**  
-📊 Incremental Revenue ÷ Promo Spend.
+📊 Measures efficiency: incremental revenue ÷ promo spend.
 
 **Breakeven Lift**  
-⚖️ Unit sales multiple needed to match prior profit.
+⚖️ The unit sales increase needed during the promo to make the same profit as before.
 
 **Lift**  
-🚀 Ratio of units sold during promo vs. previous period.
+🚀 The multiple of unit sales this promo achieved vs. the previous non-promo period.
 
 **Lift Delta**  
-📉 Actual Lift − Breakeven Lift. Positive = promo beat breakeven.
+📉 The difference between actual lift and breakeven lift — positive = exceeded breakeven.
 """)
+
 # ✅ Make sure this is executed before any tabs or UI use `df`
 df = load_data()
 # ========== Section 2: Private Label Promo Data ==========
@@ -251,7 +259,8 @@ with tab2:
 
     st.markdown("### 📋 Historical Detail for a Selected Item")
 
-    selected_item = st.selectbox("Select an Item", options=summary["Item"].unique())
+    nonzero_items = summary[summary["Total_Revenue_Potential"] > 0]["Item"].unique()
+    selected_item = st.selectbox("Select an Item", options=nonzero_items)
 
     item_history = df[df["Item"] == selected_item].copy()
     item_history["Profit"] = item_history["Incremental Revenue"] - item_history["Promo Spend"]
@@ -315,3 +324,26 @@ with tab2:
         }),
         use_container_width=True
     )
+
+    st.markdown("### 📊 Weekly Unit Sales for Selected Item")
+
+    # Filter weekly_df to just the selected item
+    item_weekly = weekly_df[weekly_df["Item_Description"] == selected_item].copy()
+
+    # Label promo vs non-promo weeks
+    item_weekly["Promo Status"] = item_weekly["promo_flag"].map({True: "Promo", False: "No Promo"})
+
+    # Bar chart of units sold by week
+    unit_chart = (
+        alt.Chart(item_weekly)
+        .mark_bar()
+        .encode(
+            x=alt.X("week_number:O", title="Week"),
+            y=alt.Y("units_sold:Q", title="Units Sold"),
+            color=alt.Color("Promo Status:N", scale=alt.Scale(domain=["Promo", "No Promo"], range=["#4CAF50", "#B0BEC5"])),
+            tooltip=["week_number", "units_sold", "Promo Status", "Regular_Price", "Special_Price"]
+        )
+        .properties(height=300)
+    )
+
+    st.altair_chart(unit_chart, use_container_width=True)
