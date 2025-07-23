@@ -184,10 +184,10 @@ with tab1:
         "x": [x_max - pad_x, x_min + pad_x, x_max - pad_x, x_min + pad_x],
         "y": [y_max - pad_y, y_max - pad_y, y_min + pad_y, y_min + pad_y],
         "label": [
-            "✅ Efficient and impactful promo",
-            "⚠️ Got volume, but at what cost?",
-            "🤔 Efficient, but underwhelming in sales",
-            "🚫 Promo likely failed"
+            "✅ STAR: Efficient and high lift promo",
+            "⚠️ TRADEOFF: High lift but costly promo",
+            "🤔 SLEEPER: Efficient, but low lift",
+            "🚫 RISK: Promo likely failed"
         ],
         "align": ["right", "left", "right", "left"],
         "baseline": ["top", "top", "bottom", "bottom"]
@@ -288,7 +288,7 @@ with tab2:
     col1, col2 = st.columns(2)
 
     with col1:
-        st.markdown("### 💵 Avg Revenue vs Avg Promo Spend per Item")
+        st.markdown("### 💵 Avg Added Revenue vs Avg Promo Spend per Item")
         scatter2 = (
             alt.Chart(summary)
             .mark_circle(size=100, opacity=0.75)
@@ -342,7 +342,10 @@ with tab2:
         "Promo Spend",
         "Incremental Revenue",
         "Profit",
-        "ROI"
+        "ROI",
+        "Lift",
+        "Breakeven_Lift",
+        "Lift Delta"
     ]
 
     display_df = item_history[cols].copy()
@@ -355,7 +358,10 @@ with tab2:
         "Promo Spend": float(display_df["Promo Spend"].sum()),
         "Incremental Revenue": float(display_df["Incremental Revenue"].sum()),
         "Profit": float(display_df["Profit"].sum()),
-        "ROI": float(display_df["ROI"].mean())
+        "ROI": float(display_df["ROI"].mean()),
+        "Lift": float(display_df["Lift"].mean()),
+        "Breakeven_Lift": float(display_df["Breakeven_Lift"].mean()),
+        "Lift Delta": float(display_df["Lift Delta"].mean())
     }
 
 
@@ -389,7 +395,10 @@ with tab2:
             "Promo Spend": "${:,.0f}",
             "Incremental Revenue": "${:,.0f}",
             "Profit": "${:,.0f}",
-            "ROI": "{:.2f}"
+            "ROI": "{:.2f}",
+            "Lift": "{:.1f}",
+            "Breakeven_Lift": "{:.1f}",
+            "Lift Delta": "{:.1f}"
         }),
         use_container_width=True
     )
