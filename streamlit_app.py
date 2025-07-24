@@ -12,12 +12,14 @@ st.image("data/econo_logo.png", width=400)
 st.title("Econo HQ Cuadriculado Dashboard")
 
 # Fake dropdown for user context
-selected_user = st.selectbox(
-    "Showing data for:",
-    options=["All (Juancarlos)", "Juancarlos", "Enid (Coming Soon)"],
-    index=0  # Default to "All (Juancarlos)"
-)
+col1, col2, col3 = st.columns([1, 1, 2])
 
+with col1:
+    st.button("All (Juancarlos)")
+with col2:
+    st.button("Juancarlos")
+with col3:
+    st.button("Enid (Coming Soon)", disabled=True)
 
 
 @st.cache_data
