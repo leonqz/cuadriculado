@@ -11,6 +11,12 @@ st.set_page_config(
 st.image("data/econo_logo.png", width=400)
 st.title("Econo HQ Cuadriculado Dashboard")
 
+# Fake dropdown for user context
+selected_user = st.selectbox(
+    "Showing data for:",
+    options=["All (Juancarlos)", "Juancarlos", "Enid (Coming Soon)"],
+    index=0  # Default to "All (Juancarlos)"
+)
 
 
 
