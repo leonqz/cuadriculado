@@ -103,7 +103,7 @@ with tab1:
 
     # First calculate weighted margin % per item
     week_df["Margin %"] = (
-        (week_df["Units Sold This Period"] * (week_df["Special Price"] - week_df["Unit Cost"])) /
+        (week_df["Units Sold This Period"] * (week_df["Special Price"] - week_df["Unit_Cost"])) /
         (week_df["Units Sold This Period"] * week_df["Special Price"])
     ).fillna(0)
 
@@ -111,40 +111,19 @@ with tab1:
     weighted_margin_pct = (
         (week_df["Margin %"] * week_df["Units Sold This Period"] * week_df["Special Price"]).sum()
         / (week_df["Units Sold This Period"] * week_df["Special Price"]).sum()   
-
+    )
 
         # Define item segments
     star_items = week_df[(week_df["ROI"] > 1.2) & (week_df["Lift"] > 1.5)]
     risk_items = week_df[(week_df["ROI"] < 0.5) & (week_df["Lift"] < 1)]
-    tradeoff_items = week_df[(week_df["ROI"] > 1.2) & (week_df["Lift"] < 1)]
+    tradeoff_items = week_df[(week_df["ROI"] < 1) & (week_df["Lift"] > 1.5)]
+    sleeper_items = week_df[(week_df["ROI"] > 1) & (week_df["Lift"] < 1)]
 
     # Choose examples
     star = star_items.sort_values("ROI", ascending=False).head(1)
     risk = risk_items.sort_values("ROI").head(1)
     tradeoff = tradeoff_items.sort_values("Lift").head(1)
-
-    # Display summary
-    st.markdown("### 🧠 Weekly Summary Insights")
-
-    st.markdown(f"**🧾 Overall Margin %:** {overall_margin_pct:.1%}")
-
-    if not star.empty:
-        s = star.iloc[0]
-        st.success(
-            f"⭐ **Star Item:** {s['Item']} had an ROI of {s['ROI']:.2f}, lift of {s['Lift']:.2f}, and margin of {s['Margin %']:.1%} — a highly effective promotion."
-        )
-
-    if not risk.empty:
-        r = risk.iloc[0]
-        st.warning(
-            f"⚠️ **Risk Item:** {r['Item']} underperformed with an ROI of {r['ROI']:.2f} and lift of {r['Lift']:.2f}, suggesting the promo cost more than it delivered."
-        )
-
-    if not tradeoff.empty:
-        t = tradeoff.iloc[0]
-        st.info(
-            f"🔀 **Tradeoff Item:** {t['Item']} had good ROI ({t['ROI']:.2f}) but weak lift ({t['Lift']:.2f}) — efficient spend, but limited volume impact."
-        )
+    sleeper = sleeper_items.sort_values("ROI").head(1)
 
 
     # Sort and slice
@@ -173,6 +152,40 @@ with tab1:
         options=["ROI", "Lift Delta", "Lift", "Incremental Revenue", "Promo Spend"],
         index=0
     )
+
+
+    # Display summary
+    st.markdown("### 🧠 Weekly Summary Insights")
+
+    st.markdown(f"**🧾 Overall Margin %:** {weighted_margin_pct:.1%}")
+
+    if not star.empty:
+        s = star.iloc[0]
+        st.success(
+            f"⭐ **Star Item:** {s['Item']} had an ROI of {s['ROI']:.2f}, lift of {s['Lift']:.2f}, and margin of {s['Margin %']:.1%} — a highly effective promotion."
+        )
+
+    if not risk.empty:
+        r = risk.iloc[0]
+        st.warning(
+            f"⚠️ **Risk Item:** {r['Item']} underperformed with an ROI of {r['ROI']:.2f} and lift of {r['Lift']:.2f}, suggesting the promo cost more than it delivered."
+        )
+
+    if not tradeoff.empty:
+        t = tradeoff.iloc[0]
+        st.info(
+            f"🔀 **Tradeoff Item:** {t['Item']} had good lift ({t['Lift']:.2f}) but weak ROI ({t['ROI']:.2f}) — strong lift, at a cost."
+        )
+
+    if not sleeper.empty:
+        t = sleeper.iloc[0]
+        st.info(
+            f"🔀 **Sleeper Item:** {t['Item']} had good ROI ({t['ROI']:.2f}) but weak lift ({t['Lift']:.2f}) — efficient spend, but limited volume impact."
+        )    
+
+
+
+
 
         # Download CSV
     @st.cache_data
