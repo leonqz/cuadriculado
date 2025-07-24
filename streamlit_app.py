@@ -113,7 +113,7 @@ with tab1:
     # Let user choose sort column
     sort_metric = st.selectbox(
         "📊 Sort table by",
-        options=["ROI", "Lift Delta", "Lift", "Incremental Revenue", "Profit", "Promo Spend"],
+        options=["ROI", "Lift Delta", "Lift", "Incremental Revenue", "Promo Spend"],
         index=0
     )
 
@@ -346,7 +346,6 @@ with tab2:
         "Unit_Cost",
         "Promo Spend",
         "Incremental Revenue",
-        "Profit",
         "ROI",
         "Lift",
         "Breakeven_Lift",
@@ -362,7 +361,6 @@ with tab2:
         "Special Price": None,
         "Promo Spend": float(display_df["Promo Spend"].sum()),
         "Incremental Revenue": float(display_df["Incremental Revenue"].sum()),
-        "Profit": float(display_df["Profit"].sum()),
         "ROI": float(display_df["ROI"].mean()),
         "Lift": float(display_df["Lift"].mean()),
         "Breakeven_Lift": float(display_df["Breakeven_Lift"].mean()),
