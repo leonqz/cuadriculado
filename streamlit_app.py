@@ -197,21 +197,6 @@ with tab1:
             f"⚠️ **Risk Item:** {r['Item']} underperformed with an ROI of {r['ROI']:.2f} and lift of {r['Lift']:.2f}, suggesting the promo cost more than it delivered."
         )
 
-    if not tradeoff.empty:
-        t = tradeoff.iloc[0]
-        st.info(
-            f"🔀 **Tradeoff Item:** {t['Item']} had good lift ({t['Lift']:.2f}) but weak ROI ({t['ROI']:.2f}) — strong lift, at a cost."
-        )
-
-    if not sleeper.empty:
-        t = sleeper.iloc[0]
-        st.info(
-            f"🔀 **Sleeper Item:** {t['Item']} had good ROI ({t['ROI']:.2f}) but weak lift ({t['Lift']:.2f}) — efficient spend, but limited volume impact."
-        )    
-
-
-
-
 
         # Download CSV
     @st.cache_data
