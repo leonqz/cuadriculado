@@ -157,6 +157,7 @@ with tab1:
         "Regular Price": "Reg Price",
         "Special Price": "Special Price",
         "Unit_Cost": "Unit Cost",
+        "Margin %": "Margin %",
         "Units Sold Last Period": "Units Sold\nLast Period",
         "Units Sold This Period": "Units Sold\nThis Period",
         "Promo Spend": "Promo Spend",
@@ -165,7 +166,6 @@ with tab1:
         "Lift": "Lift",
         "Breakeven_Lift": "Breakeven Lift",
         "Lift Delta": "Lift Delta"
-
     }
 
 
@@ -196,6 +196,7 @@ with tab1:
         st.warning(
             f"⚠️ **Risk Item:** {r['Item']} underperformed with an ROI of {r['ROI']:.2f} and lift of {r['Lift']:.2f}, suggesting the promo cost more than it delivered."
         )
+
 
 
         # Download CSV
@@ -336,7 +337,9 @@ with tab1:
                 "Breakeven Lift": "{:.1f}",
                 "Lift Delta": "{:.1f}",
                 "Incremental Revenue": "${:.0f}",
-                "ROI": "{:.1f}"
+                "ROI": "{:.1f}",
+                "Margin %": "{:.1%}"
+
 
 
             })
@@ -454,14 +457,33 @@ with tab2:
     # Combine item history + totals
     display_with_totals = pd.concat([display_df, totals_df], ignore_index=True)
 
-        # Calculate recommendation
+    # Calculate recommendation
     num_promos = len(item_history)
     avg_roi = totals["ROI"]
 
+    # Sort item_history by the most recent week before selecting last row
+    item_history_sorted = item_history.sort_values("Promo_Start_Week")
+
+    # Get latest values from the most recent entry
+    latest_units = item_history_sorted["Units Sold This Period"].iloc[-1]
+    latest_price = item_history_sorted["Special Price"].iloc[-1]
+    latest_margin_per_unit = latest_price - item_history_sorted["Unit_Cost"].iloc[-1]
+
+    # Use average lift from past promos
+    avg_lift = item_history_sorted["Lift"].mean()
+
+    # Projection with same lift
+    projected_units = latest_units * avg_lift
+    projected_profit = projected_units * latest_margin_per_unit
+    projected_revenue = projected_units * latest_price
+
+
     if num_promos >= 3 and avg_roi >= 0.5:
-        recommendation = "✅ Run another promo — consider a deeper discount."
+        recommendation = f"""✅ **Run another promo — consider a deeper discount.**  
+        Previous promos saw an average lift of **{avg_lift:.2f}x**, which would project **${projected_revenue:,.0f}** in revenue and **{projected_units:,.0f}** in units sold next time.""" 
     elif num_promos < 3 and avg_roi >= 0.5:
-        recommendation = "📈 High potential — test another promotion soon."
+        recommendation = f"""📈 **High potential — test another promotion soon.**  
+        With an average lift of **{avg_lift:.2f}x**, which would project **${projected_revenue:,.0f}** in revenue and **{projected_units:,.0f}** in units sold next time.""" 
     elif num_promos < 3 and avg_roi < 0.5:
         recommendation = "⚠️ Be cautious — early signs of low ROI."
     else:  # num_promos >= 3 and avg_roi < 0.5
