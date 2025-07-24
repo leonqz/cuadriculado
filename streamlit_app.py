@@ -172,7 +172,7 @@ with tab1:
 
 
     # Thresholds for commentary
-    high_margin = weighted_margin_pct > 0.3
+    high_margin = weighted_margin_pct > 0.2
     strong_lift = total_lift > 1.5
     efficient_spend = overall_roi > 1
 
@@ -180,11 +180,7 @@ with tab1:
     st.markdown("### 📊 Weekly Summary Overview")
 
     summary_text = f"""
-    This week, the average margin across all promoted items was **{weighted_margin_pct:.1%}** — {"a healthy profit margin" if high_margin else "on the lower side, so something to watch"}.
-
-    The average **unit sales lift** was **{total_lift:.2f}**, meaning sales were {"stronger than usual" if strong_lift else "relatively flat"} during promotions.
-
-    We spent a total of **${total_spend:,.0f}** on promotions, and the average **ROI** came out to **{overall_roi:.2f}**, which is {"a solid return" if efficient_spend else "below breakeven — there may be room to optimize"}.
+    This week, the average margin across all promoted items was **{weighted_margin_pct:.1%}** — {"a healthy profit margin" if high_margin else "on the lower side, so something to watch"}. The average **unit sales lift** was **{total_lift:.2f}**, meaning sales were {"stronger than usual" if strong_lift else "relatively flat"} during promotions. We spent a total of **${total_spend:,.0f}** on promotions, and the average **ROI** came out to **{overall_roi:.2f}**, which is {"a solid return" if efficient_spend else "below breakeven — there may be room to optimize"}.
     """
 
     st.markdown(summary_text)
