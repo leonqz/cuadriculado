@@ -11,16 +11,18 @@ st.set_page_config(
 st.image("data/econo_logo.png", width=400)
 st.title("Econo HQ Cuadriculado Dashboard")
 
-# Fake dropdown for user context
-col1, col2, col3 = st.columns([1, 1, 2])
+st.markdown("#### Showing data for:")
 
+# Define columns with tight spacing
+col1, col2, col3 = st.columns([1, 1, 1])
+
+# Multi-select using checkboxes styled like buttons
 with col1:
-    st.button("All (Juancarlos)")
+    jc_selected = st.checkbox("All (Juancarlos)", value=True)
 with col2:
-    st.button("Juancarlos")
+    enid_selected = st.checkbox("Juancarlos", value=True)
 with col3:
-    st.button("Enid (Coming Soon)", disabled=True)
-
+    coming_soon = st.checkbox("Enid (Coming Soon)", value=False, disabled=True)
 
 @st.cache_data
 def load_data():
