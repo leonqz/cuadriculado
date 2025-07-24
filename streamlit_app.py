@@ -472,13 +472,17 @@ with tab2:
         latest_row = non_promo_weeks.iloc[-1]
 
         latest_units = latest_row["units_sold"]
-        latest_cost = latest_row["Unit_Cost"]
+
+        recent_promo_row = item_history.sort_values("Promo_Start_Week").dropna(subset=["Special Price", "Unit_Cost"]).iloc[-1]
+        latest_cost = recent_promo_row["Unit_Cost"]
 
         # Get most recent Special Price from a promo week
         recent_promo_price = item_history.sort_values("Promo_Start_Week")["Special Price"].dropna().iloc[-1]
 
         latest_price = recent_promo_price  # Use promo price for projection
         latest_margin_per_unit = latest_price - latest_cost
+        projected_margin_pct = latest_margin_per_unit / latest_price
+
 
         # Use average lift from past promos
         avg_lift = item_history["Lift"].mean()
@@ -491,10 +495,11 @@ with tab2:
 
     if num_promos >= 3 and avg_roi >= 0.5:
         recommendation = f"""✅ **Run another promo — consider a deeper discount.**  
-        Previous promos saw an average lift of **{avg_lift:.2f}x**, which would project **${projected_revenue:,.0f}** in revenue and **{projected_units:,.0f}** in units sold next time.""" 
+        Previous promos saw an average lift of **{avg_lift:.2f}x**, which would project **${projected_revenue:,.0f}** in revenue, **{projected_units:,.0f}** in units sold, and a projected **margin of {projected_margin_pct:.1%}**."""
     elif num_promos < 3 and avg_roi >= 0.5:
         recommendation = f"""📈 **High potential — test another promotion soon.**  
-        With an average lift of **{avg_lift:.2f}x**, which would project **${projected_revenue:,.0f}** in revenue and **{projected_units:,.0f}** in units sold next time.""" 
+        With an average lift of **{avg_lift:.2f}x**, you could project **${projected_revenue:,.0f}** in revenue, **{projected_units:,.0f}** in units, and a projected **margin of {projected_margin_pct:.1%}**."""
+
     elif num_promos < 3 and avg_roi < 0.5:
         recommendation = "⚠️ Be cautious — early signs of low ROI."
     else:  # num_promos >= 3 and avg_roi < 0.5
