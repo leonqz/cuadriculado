@@ -461,21 +461,32 @@ with tab2:
     num_promos = len(item_history)
     avg_roi = totals["ROI"]
 
-    # Sort item_history by the most recent week before selecting last row
-    item_history_sorted = item_history.sort_values("Promo_Start_Week")
+    # Filter for selected item
+    item_weekly = weekly_df[weekly_df["Item_Description"] == selected_item].copy()
+    item_weekly_sorted = item_weekly.sort_values("week_number")
 
-    # Get latest values from the most recent entry
-    latest_units = item_history_sorted["Units Sold This Period"].iloc[-1]
-    latest_price = item_history_sorted["Special Price"].iloc[-1]
-    latest_margin_per_unit = latest_price - item_history_sorted["Unit_Cost"].iloc[-1]
+    # Find last non-promo week (i.e., where there was no discount)
+    non_promo_weeks = item_weekly_sorted[item_weekly_sorted["promo_spend"] == 0]
 
-    # Use average lift from past promos
-    avg_lift = item_history_sorted["Lift"].mean()
+    if not non_promo_weeks.empty:
+        latest_row = non_promo_weeks.iloc[-1]
 
-    # Projection with same lift
-    projected_units = latest_units * avg_lift
-    projected_profit = projected_units * latest_margin_per_unit
-    projected_revenue = projected_units * latest_price
+        latest_units = latest_row["units_sold"]
+        latest_cost = latest_row["Unit_Cost"]
+
+        # Get most recent Special Price from a promo week
+        recent_promo_price = item_history.sort_values("Promo_Start_Week")["Special Price"].dropna().iloc[-1]
+
+        latest_price = recent_promo_price  # Use promo price for projection
+        latest_margin_per_unit = latest_price - latest_cost
+
+        # Use average lift from past promos
+        avg_lift = item_history["Lift"].mean()
+
+        # Projected performance
+        projected_units = latest_units * avg_lift
+        projected_profit = projected_units * latest_margin_per_unit
+        projected_revenue = projected_units * latest_price
 
 
     if num_promos >= 3 and avg_roi >= 0.5:
