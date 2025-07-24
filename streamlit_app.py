@@ -95,10 +95,25 @@ with tab1:
     )["Promo Period"].tolist()
 
 
-    # Week selector
-    selected_week = st.selectbox("📆 Select Cuadriculado", sorted_periods)
-    week_df = df[df["Promo Period"] == selected_week].copy()
-    
+    # Create 3 columns side by side
+    col1, col2, col3 = st.columns(3)
+
+    # Place each selectbox inside one of the columns
+    with col1:
+        selected_week = st.selectbox("📆 Select Cuadriculado", sorted_periods)
+        week_df = df[df["Promo Period"] == selected_week].copy()
+
+
+    with col2:
+        sort_metric = st.selectbox(
+            "📊 Sort table by",
+            options=["ROI", "Lift Delta", "Lift", "Incremental Revenue", "Promo Spend"],
+            index=0
+        )
+
+    with col3:
+        view_option = st.selectbox("📈 View", ["Top Performers", "Bottom Performers", "All"])
+
 
 
     # First calculate weighted margin % per item
@@ -112,6 +127,15 @@ with tab1:
         (week_df["Margin %"] * week_df["Units Sold This Period"] * week_df["Special Price"]).sum()
         / (week_df["Units Sold This Period"] * week_df["Special Price"]).sum()   
     )
+
+        # Calculate overall metrics
+    total_units = week_df["Units Sold This Period"].sum()
+    total_profit = ((week_df["Special Price"] - week_df["Unit_Cost"]) * week_df["Units Sold This Period"]).sum()
+
+    total_lift = week_df["Lift"].mean()
+    total_spend = week_df["Promo Spend"].sum()
+    overall_roi = week_df["ROI"].mean()
+
 
         # Define item segments
     star_items = week_df[(week_df["ROI"] > 1.2) & (week_df["Lift"] > 1.5)]
@@ -143,21 +167,27 @@ with tab1:
         "Lift Delta": "Lift Delta"
 
     }
-    view_option = st.selectbox("📈 View", ["Top Performers", "Bottom Performers", "All"])
 
 
-    # Let user choose sort column
-    sort_metric = st.selectbox(
-        "📊 Sort table by",
-        options=["ROI", "Lift Delta", "Lift", "Incremental Revenue", "Promo Spend"],
-        index=0
-    )
 
 
-    # Display summary
-    st.markdown("### 🧠 Weekly Summary Insights")
+    # Thresholds for commentary
+    high_margin = weighted_margin_pct > 0.3
+    strong_lift = total_lift > 1.5
+    efficient_spend = overall_roi > 1
 
-    st.markdown(f"**🧾 Overall Margin %:** {weighted_margin_pct:.1%}")
+    # Conversational summary
+    st.markdown("### 📊 Weekly Summary Overview")
+
+    summary_text = f"""
+    This week, the average margin across all promoted items was **{weighted_margin_pct:.1%}** — {"a healthy profit margin" if high_margin else "on the lower side, so something to watch"}.
+
+    The average **unit sales lift** was **{total_lift:.2f}**, meaning sales were {"stronger than usual" if strong_lift else "relatively flat"} during promotions.
+
+    We spent a total of **${total_spend:,.0f}** on promotions, and the average **ROI** came out to **{overall_roi:.2f}**, which is {"a solid return" if efficient_spend else "below breakeven — there may be room to optimize"}.
+    """
+
+    st.markdown(summary_text)
 
     if not star.empty:
         s = star.iloc[0]
