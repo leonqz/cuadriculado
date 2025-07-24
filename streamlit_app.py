@@ -48,7 +48,7 @@ st.sidebar.markdown("""
 **Promo Spend**  
 💸 The total cost of offering the discount (i.e., the discount per unit × units sold).
 
-**Incremental Revenue**  
+**Added / Incremental Revenue**  
 📈 The extra revenue generated during the promotion compared to the prior period.
 
 **ROI (Return on Investment)**  
@@ -96,6 +96,7 @@ with tab1:
         "Item": "Item",
         "Regular Price": "Reg Price",
         "Special Price": "Special Price",
+        "Unit_Cost": "Unit Cost",
         "Units Sold Last Period": "Units Sold\nLast Period",
         "Units Sold This Period": "Units Sold\nThis Period",
         "Promo Spend": "Promo Spend",
@@ -247,6 +248,7 @@ with tab1:
                 "Reg Price": "${:.2f}",
                 "Special Price": "${:.2f}",
                 "Promo Spend": "${:.0f}",
+                "Unit Cost": "${:.2f}",
                 "Units Sold\nLast Period": "{:.0f}",
                 "Units Sold\nThis Period": "{:.0f}",
                 "Lift": "{:.1f}",
@@ -279,7 +281,9 @@ with tab2:
         Total_Revenue=("Incremental Revenue", "sum"),
         Avg_Revenue=("Incremental Revenue", "mean"),
         Avg_Spend=("Promo Spend", "mean"),
-        Total_Revenue_Potential=("Revenue_Potential", "sum")
+        Total_Revenue_Potential=("Revenue_Potential", "sum"),
+        Avg_Lift=("Lift", "mean")
+
     ).reset_index()
 
     summary["ROI_Capped"] = summary["Avg_ROI"].clip(lower=-1, upper=1.5)
@@ -288,13 +292,31 @@ with tab2:
     col1, col2 = st.columns(2)
 
     with col1:
+        st.markdown("### 📈 Unit Lift vs Number of Promotions")
+        scatter3 = (
+            alt.Chart(summary)
+            .mark_circle(size=100, opacity=0.75)
+            .encode(
+                x=alt.X("Promo_Count:Q", title="Number of Promotions"),
+                y=alt.Y("Avg_Lift:Q", title="Average Unit Lift"),
+                size=alt.Size("Total_Revenue_Potential:Q", scale=alt.Scale(range=[30, 400])),
+                color=alt.Color("ROI_Capped:Q", scale=alt.Scale(scheme="redyellowgreen", domainMid=0),
+                                legend=alt.Legend(title="Avg ROI (capped)")),
+                tooltip=["Item", "Promo_Count", "Avg_Lift", "Avg_ROI", "Total_Revenue"]
+            )
+            .properties(height=400)
+            .interactive()
+        )
+        st.altair_chart(scatter3, use_container_width=True)
+
+    with col2:
         st.markdown("### 💵 Avg Added Revenue vs Avg Promo Spend per Item")
         scatter2 = (
             alt.Chart(summary)
             .mark_circle(size=100, opacity=0.75)
             .encode(
                 x=alt.X("Avg_Spend:Q", title="Average Promo Spend ($)"),
-                y=alt.Y("Avg_Revenue:Q", title="Average Incremental Revenue ($)"),
+                y=alt.Y("Avg_Revenue:Q", title="Average Added Revenue ($)"),
                 size=alt.Size("Total_Revenue_Potential:Q", scale=alt.Scale(range=[30, 400])),
                 color=alt.Color("ROI_Capped:Q", scale=alt.Scale(scheme="redyellowgreen", domainMid=0),
                                 legend=alt.Legend(title="Average ROI")),
@@ -304,24 +326,6 @@ with tab2:
             .interactive()
         )
         st.altair_chart(scatter2, use_container_width=True)
-
-    with col2:
-        st.markdown("### 📈 ROI vs Number of Promotions")
-        scatter3 = (
-            alt.Chart(summary)
-            .mark_circle(size=100, opacity=0.75)
-            .encode(
-                x=alt.X("Promo_Count:Q", title="Number of Promotions"),
-                y=alt.Y("Avg_ROI:Q", title="Average ROI"),
-                size=alt.Size("Total_Revenue_Potential:Q", scale=alt.Scale(range=[30, 400])),
-                color=alt.Color("ROI_Capped:Q", scale=alt.Scale(scheme="redyellowgreen", domainMid=0),
-                                legend=alt.Legend(title="Avg ROI (capped)")),
-                tooltip=["Item", "Promo_Count", "Avg_ROI", "Total_Revenue"]
-            )
-            .properties(height=400)
-            .interactive()
-        )
-        st.altair_chart(scatter3, use_container_width=True)
 
 
 
@@ -339,6 +343,7 @@ with tab2:
         "Promo Period",
         "Regular Price",
         "Special Price",
+        "Unit_Cost",
         "Promo Spend",
         "Incremental Revenue",
         "Profit",
@@ -392,14 +397,15 @@ with tab2:
         display_with_totals.style.format({
             "Regular Price": "${:.2f}",
             "Special Price": "${:.2f}",
+            "Unit_Cost": "${:.2f}",
             "Promo Spend": "${:,.0f}",
             "Incremental Revenue": "${:,.0f}",
             "Profit": "${:,.0f}",
             "ROI": "{:.2f}",
             "Lift": "{:.1f}",
             "Breakeven_Lift": "{:.1f}",
-            "Lift Delta": "{:.1f}"
-        }),
+            "Lift Delta": "{:.1f}",
+            }),
         use_container_width=True
     )
 
